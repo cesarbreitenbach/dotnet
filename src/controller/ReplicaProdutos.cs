@@ -15,15 +15,21 @@ namespace ReplicaProdutos
     class ApiProdutos
     {
         public string ARQUIVO_SERIALIZADO = "prod_old.bin";
-        private static Serilog.Core.Logger log = Log.CriarLogger();
+        private  Serilog.Core.Logger log;
 
         IDictionary<int, Produto> produtoAnterior;
+
+        public ApiProdutos(Serilog.Core.Logger pLog){
+
+            this.log = pLog;
+
+        }
      
         private void CarregarSerializado()
         {
             if (File.Exists(ARQUIVO_SERIALIZADO))
             {
-                log.Information("Deserializando....");
+         //       log.Information("Deserializando....");
                 using var arquivo = new FileStream(ARQUIVO_SERIALIZADO, FileMode.OpenOrCreate);
                 var formatter = new BinaryFormatter();
                 var dicionario = formatter.Deserialize(arquivo)
@@ -37,18 +43,18 @@ namespace ReplicaProdutos
             try
             {
 
-                log.Information("Iniciou o processamento dos produtos...");
+                log.Information("Inicio da sincronização de produtos");
                 CarregarSerializado();
 
                 var alterados = new List<Produto>();
                 log.Information("Buscando produtos...");
                 var produtos = BuscarProdutos();
-                log.Information("Quantidade de produtos buscados: "+ produtos.Count());
+                log.Information("Quantidade de produtos encontrados: "+ produtos.Count());
 
                 if (produtoAnterior is not null)
                 {
                     log.Debug("Existe produto anterior... ");
-                    log.Information("Vou comparar lista...");
+              //      log.Information("Vou comparar lista...");
                     Parallel.ForEach( produtos, prod => 
                     {
                         if (produtoAnterior.ContainsKey(prod.CodigoProduto))
@@ -56,12 +62,14 @@ namespace ReplicaProdutos
                             if ( !prod.Equals(produtoAnterior[prod.CodigoProduto]))
                             {
                                 log.Information("Esse produto foi alterado: "+prod.CodigoProduto+" "+ prod.NomeProduto);
+                                prod.Novo = 0;
                                 alterados.Add(prod);
                             }
                         }
                         else
                         {
-                            log.Information("Produto novo..: "+prod.CodigoProduto+" "+ prod.NomeProduto);
+                            log.Information("Este é um produto novo..: "+prod.CodigoProduto+" "+ prod.NomeProduto);
+                            prod.Novo = 1;
                             alterados.Add(prod);
                         }
                     });
@@ -72,14 +80,14 @@ namespace ReplicaProdutos
 
                 using var arquivo = new FileStream(ARQUIVO_SERIALIZADO, FileMode.OpenOrCreate);
                 var formatter = new BinaryFormatter();
-                log.Information("Serigalizando o arquivo...");
+          //      log.Information("Serializando os produtos.....");
                 formatter.Serialize(arquivo, produtoAnterior);
-                log.Information("Processo finalizado..");
+                log.Information("Sincronização de produtos finalizada!");
 
             }
             catch (Exception e)
             {
-                log.Information("Erro.. "+e.Message);
+                log.Error("Erro: "+e.Message);
                 throw;
             }
         }
@@ -92,12 +100,11 @@ namespace ReplicaProdutos
 
             var http = new HttpClient();
 
-            log.Information("Tenho que fazer alguma coisa com os produtos: ");
             foreach(var p in produtos)
             {
-                log.Information("Codigo produto alterado: "+ p.CodigoProduto);
-                
+                log.Information("Codigo produto: "+ p.CodigoProduto +" Nome: "+p.NomeProduto);
                 var jjjhonson = new {
+                        codigo_produto=p.CodigoProduto,
                         codigo_barras= p.CodigoBarra,
                         nome=p.NomeProduto,
                         id_grupo= p.CodigoGrupo,
@@ -106,18 +113,27 @@ namespace ReplicaProdutos
                     };
 
                 var client = new RestClient(envReader.GetStringValue("API"));
+
+
             
-                var request = new RestRequest($@"/produtos?id={p.CodigoProduto}", Method.PUT);
+                RestRequest request;
+                if (p.Novo == 0){
+                    request = new RestRequest($@"/produtos?id={p.CodigoProduto}", Method.PUT);
+                }else{
+                    request = new RestRequest("/produtos/rep", Method.POST);
+                }
 
                 request.AddHeader("auth", token);
                 request.AddJsonBody(jjjhonson);
 
                 var resposta = client.Execute(request);
 
-                if (resposta.StatusCode != System.Net.HttpStatusCode.Created)
+                 if (resposta.StatusCode != System.Net.HttpStatusCode.Created && resposta.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    log.Error("Não atualizei produto!! "+resposta.Content);
-                    throw new Exception(resposta.Content);
+                    log.Error("Não atualizei produto!! ");
+                    log.Error(resposta.Content);
+                    System.Console.WriteLine(jjjhonson);
+                    throw new Exception(resposta.Content.ToString());
                 }
 
             }

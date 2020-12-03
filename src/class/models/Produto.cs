@@ -18,6 +18,8 @@ class Produto
 
     public string Formula { get; set; }
 
+    public int Novo { get; set; }
+
     [NonSerialized]
     private PropertyInfo[] _PropertyInfos = null;
 

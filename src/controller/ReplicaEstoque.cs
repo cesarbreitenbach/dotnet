@@ -16,7 +16,7 @@ namespace ReplicaEstoque
     class ApiEstoque
     {
         public string ARQUIVO_SERIALIZADO = "est_old.bin";
-        private static Serilog.Core.Logger log = Log.CriarLogger();
+        private  Serilog.Core.Logger log;
 
         IDictionary<int, ClassEstoque> estoqueAnterior;
      
@@ -24,7 +24,6 @@ namespace ReplicaEstoque
         {
             if (File.Exists(ARQUIVO_SERIALIZADO))
             {
-                log.Information("Deserializando....");
                 using var arquivo = new FileStream(ARQUIVO_SERIALIZADO, FileMode.OpenOrCreate);
                 var formatter = new BinaryFormatter();
                 var dicionario = formatter.Deserialize(arquivo)
@@ -33,23 +32,29 @@ namespace ReplicaEstoque
             }
         }
 
+        public ApiEstoque(Serilog.Core.Logger pLog){
+
+            this.log = pLog;
+
+        }
+
         public void Processar(String token)
         {
             try
             {
 
-                log.Information("Processando estoque... ");
+                log.Information("Inicio da sincronização de estoque ");
                 CarregarSerializado();
 
                 var alterados = new List<ClassEstoque>();
                 log.Information("Buscando estoque...");
                 var estoques = BuscaEstoque();
-                log.Information("Quantidade de estoques buscados: "+ estoques.Count());
+                log.Information("Quantidade de estoques encontrados: "+ estoques.Count());
 
                 if (estoqueAnterior is not null)
                 {
                     log.Debug("Existe produto anterior... ");
-                    log.Information("Vou comparar lista...");
+                   // log.Information("Vou comparar lista...");
                     Parallel.ForEach( estoques, est => 
                     {
                         if (estoqueAnterior.ContainsKey(est.CodigoEstoque))
@@ -57,12 +62,14 @@ namespace ReplicaEstoque
                             if ( !est.Equals(estoqueAnterior[est.CodigoEstoque]))
                             {
                                 log.Information("Esse estoque foi alterado: "+est.CodigoEstoque+"  codigo do produto: "+ est.CodigoProduto);
+                                est.Novo = 0;
                                 alterados.Add(est);
                             }
                         }
                         else
                         {
                             log.Information("Estoque novo..: "+est.CodigoEstoque+"  produto: "+ est.CodigoProduto);
+                            est.Novo = 1;
                             alterados.Add(est);
                         }
                     });
@@ -73,9 +80,9 @@ namespace ReplicaEstoque
 
                 using var arquivo = new FileStream(ARQUIVO_SERIALIZADO, FileMode.OpenOrCreate);
                 var formatter = new BinaryFormatter();
-                log.Information("Serigalizando o arquivo...");
+            //    log.Information("Serigalizando o arquivo...");
                 formatter.Serialize(arquivo, estoqueAnterior);
-                log.Information("Processo do estoque finalizado..");
+                log.Information("Sincronização de estoque finalizada!");
 
             }
             catch (Exception e)
@@ -93,12 +100,14 @@ namespace ReplicaEstoque
 
             var http = new HttpClient();
 
-            log.Information("Tenho que fazer alguma coisa com os produtos: ");
+            log.Information("Verificando se preciso atualizar o estoque na nuvem... ");
             foreach(var p in produtos)
             {
-                log.Information("Estoque alterado: "+ p.CodigoEstoque);
+                log.Information("Codigo Estoque: "+ p.CodigoEstoque+" Produto: "+p.CodigoProduto);
                 
                 var jjjhonson = new {
+                        id_loja=p.CodigoEmpresa,
+                        codigo_produto=p.CodigoProduto,
                         codigo_barras= p.CodigoBarra,
                         qtd_estoque= p.Estoque,
                         preco_venda=p.PrecoVenda,
@@ -108,16 +117,25 @@ namespace ReplicaEstoque
                     };
 
                 var client = new RestClient(envReader.GetStringValue("API"));
-            
-                var request = new RestRequest($@"/estoque/{p.CodigoEmpresa}/{p.CodigoProduto}", Method.PUT);
+
+                RestRequest request;
+
+                if (p.Novo == 0){
+                    log.Information("Alterar estoque: "+jjjhonson.ToString());
+                    request = new RestRequest($@"/estoque/{p.CodigoEmpresa}/{p.CodigoProduto}", Method.PUT);
+                }else{
+                     log.Information("Adicionar estoque: "+jjjhonson.ToString());
+                     request = new RestRequest("/estoque/", Method.POST);
+                }
 
                 request.AddHeader("auth", token);
-                request.AddJsonBody(jjjhonson);
+                request.AddJsonBody(jjjhonson); 
 
                 var resposta = client.Execute(request);
 
-                if (resposta.StatusCode != System.Net.HttpStatusCode.OK)
+                if (resposta.StatusCode != System.Net.HttpStatusCode.Created && resposta.StatusCode != System.Net.HttpStatusCode.OK)
                 {
+                    log.Error("Não atualizei o estoque: ");
                     log.Error(resposta.Content);
                     throw new Exception(resposta.Content);
                 }

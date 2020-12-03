@@ -11,7 +11,7 @@ namespace Utils
         {
             return new LoggerConfiguration()
                 .WriteTo
-                .File(System.AppDomain.CurrentDomain.FriendlyName + ".log", fileSizeLimitBytes: 8 * 1024 )
+                .File(System.AppDomain.CurrentDomain.FriendlyName + ".log", fileSizeLimitBytes: 50 * 1024 )
                 .WriteTo
                 .Console(Serilog.Events.LogEventLevel.Debug)
                 .CreateLogger();

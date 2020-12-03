@@ -21,6 +21,8 @@ class ClassEstoque
 
     public int Ativo { get; set; }
 
+    public int Novo { get; set; }
+
     [NonSerialized]
     private PropertyInfo[] _PropertyInfos = null;
 

@@ -98,7 +98,7 @@ namespace ReplicaEstoque
             EnvReader envReader = new EnvReader();
             
 
-            var http = new HttpClient();
+         //   var http = new HttpClient();
 
             log.Information("Verificando se preciso atualizar o estoque na nuvem... ");
             foreach(var p in produtos)

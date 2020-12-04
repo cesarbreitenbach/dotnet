@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Projeto AppPharma\\dotnet\\dotnet.csproj": {}
+    "D:\\Projeto AppPharma\\sincronizador\\dotnet.csproj": {}
   },
   "projects": {
-    "D:\\Projeto AppPharma\\dotnet\\dotnet.csproj": {
+    "D:\\Projeto AppPharma\\sincronizador\\dotnet.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projeto AppPharma\\dotnet\\dotnet.csproj",
+        "projectUniqueName": "D:\\Projeto AppPharma\\sincronizador\\dotnet.csproj",
         "projectName": "dotnet",
-        "projectPath": "D:\\Projeto AppPharma\\dotnet\\dotnet.csproj",
+        "projectPath": "D:\\Projeto AppPharma\\sincronizador\\dotnet.csproj",
         "packagesPath": "C:\\Users\\Cesar\\.nuget\\packages\\",
-        "outputPath": "D:\\Projeto AppPharma\\dotnet\\obj\\",
+        "outputPath": "D:\\Projeto AppPharma\\sincronizador\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Cesar\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -41,6 +41,10 @@
             "Dapper": {
               "target": "Package",
               "version": "[2.0.78, )"
+            },
+            "MailKit": {
+              "target": "Package",
+              "version": "[2.10.0, )"
             },
             "Newtonsoft.Json": {
               "target": "Package",
@@ -87,11 +91,6 @@
             }
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.100\\RuntimeIdentifierGraph.json"
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
         }
       }
     }

@@ -11,8 +11,8 @@ class Auth {
     {
         EnvReader envReader = new EnvReader();
 
-        string usuario = envReader.GetStringValue("USUARIO");
-        string senha = envReader.GetStringValue("SENHA");
+        string usuario = envReader.GetStringValue("AGENTE");
+        string senha = envReader.GetStringValue("SIGMA");
 
         var objetoSenha = new {
             cpf=usuario,

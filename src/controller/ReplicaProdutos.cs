@@ -42,7 +42,6 @@ namespace ReplicaProdutos
         {
             try
             {
-
                 log.Information("Inicio da sincronização de produtos");
                 CarregarSerializado();
 
